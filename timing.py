@@ -27,7 +27,8 @@ ammc.p3_to_json.restype = ctypes.c_char_p
 ammc.p3_to_json.argtypes = [ ctypes.c_char_p ]
 
 #Setup other global variables
-HOST = "localhost"  # The decoder's address
+#HOST = "localhost"  # The decoder's address
+HOST = "169.254.20.156"
 PORT = 5403         # The port used by the server
 
 ###Function definition section
@@ -58,9 +59,9 @@ def csv_file_to_map(file_path):
             if not line:
                 continue  # skip empty lines
             row = line.split(',')
-            if len(row) > 6:  # ensure there are enough columns
-                key = row[2]
-                value = row[6]
+            if len(row) > 2:  # ensure there are enough columns
+                key = row[1]
+                value = row[2]
                 result[key] = value
     return result
 
@@ -97,11 +98,20 @@ def handle_passing(passing):
         laps_per_athlete[name] = lap_array
 
 #Main code goes here
+
+#prompt for ip
+user_input = input("Enter IP and enter. For default IP, enter with no input: ")
+if user_input != "":
+    HOST = user_input
+
+#load chip assignment
 chipmap = csv_file_to_map("./people.csv")
 print(chipmap)
 
+#create and handle connection
 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
     s.connect((HOST, PORT))
+    print("socket connected!")
     while True:
         data = s.recv(1024)
         msg = data.hex()
