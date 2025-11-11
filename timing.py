@@ -1,22 +1,23 @@
 from os import system
 from sys import platform
 from datetime import datetime
-#from dateutil import parser
 import ctypes
 import json
 import socket
+import time
 
 last_passing_per_athlete = {}
 laps_per_athlete = {}
+laps_per_athlete_displayable = {}
 
 #Get OS, set path to proper library according to result. Crash the program if unsupported
 libname = ""
 if platform == "darwin":
-    libname = "./libammc.dylib"
+    libname = "./libs/libammc.dylib"
 elif "win" in platform:
-    libname = "./ammc.dll"
+    libname = "./libs/ammc.dll"
 elif "linux" in platform:
-    libname = "./libammc.so"
+    libname = "./libs/libammc.so"
 else:
     print(f"AMMC lib is supported on Windows, Linux and MacOS platforms only. What platform is '{platform}'?")
     exit(1)
@@ -65,37 +66,60 @@ def csv_file_to_map(file_path):
                 result[key] = value
     return result
 
+#Saves the session as a text file
+def save_session_to_file():
+    timestamp = datetime.now().strftime("%Y-%m-%d_%Hh%Mmin")
+    file_name = f"./sessions/session_{timestamp}.txt"
+    try:
+        with open(file_name, 'w', encoding='utf-8') as file:
+            for key, value in laps_per_athlete.items():
+                file.write(f"{key}: {value}\n")
+    except IOError as e:
+        print("Error writing to file...")
+
 def handle_passing(passing):
+    #If decoder message is not a passing, skip that message
     if passing[0]["msg"] != "PASSING":
         return
+    #Get skater name from map. Unknown otherwise
     name = chipmap.get(passing[0]["tran_code"])
     if name == None:
         "Unknown chip passed"
         name = "Unknown"
-    #print("passing for"+name)
+
+    #Get and fix date from passing
     date_raw = passing[0]["rtc_time"]
     date_fixed = date_raw.replace(" UTC", "+00:00")
     date = datetime.fromisoformat(date_fixed)
 
+    #Get last passing of athlete. If none, means no lap, just change last passing
     last_passing = last_passing_per_athlete.get(name)
-
     if last_passing == None:
         last_passing_per_athlete[name] = date
-        #print("last passing of ath was null")
         return
-    
+
+    #Calculate lap    
     lap = date - last_passing
-    laptime = lap.total_seconds()
+    raw_laptime = lap.total_seconds()
+    laptime = round(raw_laptime, 2)
     last_passing_per_athlete[name] = date
 
+    #If invalid time, return
     if laptime < 7.5 or laptime > 14:
         return
+    
+    #If valid lap, update lists and ui
     lap_array = laps_per_athlete.get(name)
     if lap_array == None:
         laps_per_athlete[name] = [laptime]
+        laps_per_athlete_displayable[name] = [laptime]
     else:
         lap_array.insert(0, laptime)
         laps_per_athlete[name] = lap_array
+        laps_per_athlete_displayable[name] = lap_array[:10]
+    clear_terminal()
+    for key, value in laps_per_athlete_displayable.items():
+            print(f"{key}: {value}")
 
 #Main code goes here
 
@@ -110,14 +134,20 @@ print(chipmap)
 
 #create and handle connection
 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-    s.connect((HOST, PORT))
-    print("socket connected!")
-    while True:
-        data = s.recv(1024)
-        msg = data.hex()
-        handle_passing(decode_msg(msg))
-        #print(last_passing_per_athlete)
+    try:
+        while True:
+            try:
+                s.connect((HOST, PORT))
+                print("Socket connected!")
+                while True:
+                    data = s.recv(1024)
+                    msg = data.hex()
+                    handle_passing(decode_msg(msg))
+            except Exception as e:
+                print("Error connecting to decoder, retrying in 5 seconds: " + str(e))
+                time.sleep(5)
+    except KeyboardInterrupt:
         clear_terminal()
-        #print(laps_per_athlete)
-        for key, value in laps_per_athlete.items():
-            print(f"{key}: {value}")
+        print("Program exited through keyboard interrupt, saving data to file...")
+        save_session_to_file()
+                

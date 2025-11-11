@@ -1,7 +1,7 @@
 import ctypes
 import json
 import socket
-ammc = ctypes.CDLL("./ammc.dll")
+ammc = ctypes.CDLL("./libs/ammc.dll")
 ammc.p3_to_json.restype = ctypes.c_char_p
 ammc.p3_to_json.argtypes = [ ctypes.c_char_p ]
 def decode_msg(msg):
