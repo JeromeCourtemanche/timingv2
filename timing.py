@@ -29,7 +29,7 @@ ammc.p3_to_json.argtypes = [ ctypes.c_char_p ]
 
 #Setup other global variables
 #HOST = "localhost"  # The decoder's address
-HOST = "169.254.20.156"
+HOST = "192.168.230.2"
 PORT = 5403         # The port used by the server
 
 ###Function definition section
