@@ -7,6 +7,8 @@ import socket
 import time
 
 last_passing_per_athlete = {}
+overall_last_passing = None
+last_lead_lap = ["0.00", "Ready"]
 laps_per_athlete = {}
 laps_per_athlete_displayable = {}
 
@@ -92,6 +94,14 @@ def handle_passing(passing):
     date_fixed = date_raw.replace(" UTC", "+00:00")
     date = datetime.fromisoformat(date_fixed)
 
+    #Set overall last passing, check if passing was lead
+    lead = False
+    if last_passing == None:
+        overall_last_passing = date
+    elif date - overall_last_passing > 3:
+        lead = True
+
+
     #Get last passing of athlete. If none, means no lap, just change last passing
     last_passing = last_passing_per_athlete.get(name)
     if last_passing == None:
@@ -108,6 +118,10 @@ def handle_passing(passing):
     if laptime < 7.5 or laptime > 14:
         return
     
+    #If valid lap, check if lead and update lead.
+    if lead:
+        last_lead_lap = [laptime, name]
+    
     #If valid lap, update lists and ui
     lap_array = laps_per_athlete.get(name)
     if lap_array == None:
@@ -118,9 +132,12 @@ def handle_passing(passing):
         laps_per_athlete[name] = lap_array
         laps_per_athlete_displayable[name] = lap_array[:10]
     clear_terminal()
+    print(f"Last lead: {last_lead_lap[0]} ({last_lead_lap[1]})")
     for key, value in laps_per_athlete_displayable.items():
             print(f"{key}: {value}")
 
+def update_ui():
+    return
 #Main code goes here
 
 #prompt for ip
