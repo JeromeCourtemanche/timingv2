@@ -40,8 +40,8 @@ ammc.p3_to_json.restype = ctypes.c_char_p
 ammc.p3_to_json.argtypes = [ ctypes.c_char_p ]
 
 #Setup other global variables
-HOST = "127.0.0.1"  # The decoder's address
-#HOST = "192.168.230.2"
+#HOST = "127.0.0.1"  # The decoder's address
+HOST = "192.168.230.2"
 PORT = 5403         # The port used by the server
 
 ###Function definition section
